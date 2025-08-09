@@ -9,6 +9,7 @@ class AIService {
     required String apiKey,
     required String inputText,
     required String vibe,
+    List<Map<String, String>>? messages,
   }) async {
     switch (provider.toLowerCase()) {
       case 'chatgpt':
@@ -17,6 +18,7 @@ class AIService {
           apiKey: apiKey,
           inputText: inputText,
           vibe: vibe,
+          messages: messages,
         );
 
       case 'gemini':

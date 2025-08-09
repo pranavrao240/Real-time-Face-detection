@@ -8,6 +8,7 @@ class ChatGPTService {
     required String apiKey,
     required String inputText,
     required String vibe,
+    List<Map<String, String>>? messages,
   }) async {
     try {
       final response = await http.post(
@@ -20,7 +21,7 @@ class ChatGPTService {
           'model': 'gpt-3.5-turbo',
           'messages': [
             {'role': 'system', 'content': _getSystemPrompt(vibe)},
-            {'role': 'user', 'content': inputText},
+            ...?messages,
           ],
           'max_tokens': 500,
           'temperature': 0.7,

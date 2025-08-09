@@ -13,7 +13,8 @@ class ChatMessage {
   final String selectedTone;
   final DateTime timestamp;
   final bool isLoading;
-  bool isDisliked;
+  final bool isDisliked;
+  final bool isLiked;
 
   ChatMessage({
     required this.id,
@@ -23,6 +24,7 @@ class ChatMessage {
     required this.timestamp,
     this.isLoading = false,
     this.isDisliked = false,
+    this.isLiked = false,
   });
 
   ChatMessage copyWith({
@@ -33,6 +35,7 @@ class ChatMessage {
     DateTime? timestamp,
     bool? isLoading,
     bool? isDisliked,
+    bool? isLiked,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -42,6 +45,7 @@ class ChatMessage {
       timestamp: timestamp ?? this.timestamp,
       isLoading: isLoading ?? this.isLoading,
       isDisliked: isDisliked ?? this.isDisliked,
+      isLiked: isLiked ?? this.isLiked,
     );
   }
 }
@@ -114,6 +118,26 @@ class ChatMessagesNotifier extends StateNotifier<List<ChatMessage>> {
 
   void clearMessages() {
     state = [];
+  }
+
+  void updateMessageDisliked(String messageId, bool isDisliked) {
+    state =
+        state.map((message) {
+          if (message.id == messageId) {
+            return message.copyWith(isDisliked: isDisliked);
+          }
+          return message;
+        }).toList();
+  }
+
+  void updateMessageLiked(String messageId, bool isLiked) {
+    state =
+        state.map((message) {
+          if (message.id == messageId) {
+            return message.copyWith(isLiked: isLiked);
+          }
+          return message;
+        }).toList();
   }
 }
 
@@ -195,12 +219,27 @@ final refineMessageProvider = Provider<void Function()>((ref) {
       final messages = ref.read(chatMessagesProvider);
       final latestMessage = messages.last;
 
+      // Build conversation history for context-aware AI
+      final chatMessages = ref.read(chatMessagesProvider);
+      final List<Map<String, String>> messagesHistory = [];
+      for (final m in chatMessages) {
+        if (m.userMessage.isNotEmpty) {
+          messagesHistory.add({'role': 'user', 'content': m.userMessage});
+        }
+        if (m.aiResponse != null && m.aiResponse!.isNotEmpty) {
+          messagesHistory.add({'role': 'assistant', 'content': m.aiResponse!});
+        }
+      }
+      // Add the current input as the latest user message
+      messagesHistory.add({'role': 'user', 'content': input});
+
       final refinedText = await AIService.refineText(
         provider: settings.provider,
         model: settings.model,
         apiKey: settings.apiKey,
         inputText: input,
         vibe: selectedVibe,
+        messages: messagesHistory,
       );
 
       print('AI Response: $refinedText'); // Debug print

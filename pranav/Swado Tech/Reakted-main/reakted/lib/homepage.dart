@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 import 'package:reakted/providers/settings_provider.dart';
 import 'package:reakted/utils/toast.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:reakted/widgets/chat_message_feedback.dart';
 import 'package:tabler_icons/tabler_icons.dart';
 import 'providers/home_provider.dart';
 import 'settings_page.dart';
 import 'services/system_preferences_service.dart';
+
+import 'services/feedback_service.dart';
 
 class BreathingIcon extends StatefulWidget {
   const BreathingIcon({super.key});
@@ -650,101 +651,58 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
 
             if (message.aiResponse != null) ...[
-              // Action buttons - Copy, Like, Dislike
-              Align(
-                alignment: Alignment.centerLeft,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4.0),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Copy button
                     ElevatedButton.icon(
                       onPressed: () {
                         _resetInactivityTimer();
                         onCopyMessage(message.aiResponse!);
                       },
                       icon: Icon(isCopied ? Icons.check : Icons.copy, size: 16),
-                      label: const Text(''),
+                      label: const SizedBox.shrink(),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.black,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.all(3),
+                        minimumSize: const Size(28, 28),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    // Like and Dislike buttons grouped together
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            _resetInactivityTimer();
-                            // Handle like action
-                            SystemPreferencesService.saveFeedback(
-                              message.id,
-                              'like',
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.thumb_up_alt_outlined,
-                            size: 16,
-                          ),
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(
-                            minHeight: 24,
-                            minWidth: 24,
-                          ),
-                          splashRadius: 20,
-                        ),
-                        Container(width: 1, height: 16),
-                        IconButton(
-                          onPressed: () {
-                            _resetInactivityTimer();
-                            // Handle dislike action
-                            SystemPreferencesService.saveFeedback(
-                              message.id,
-                              'dislike',
-                            );
-                            setState(() {
-                              message.isDisliked = true;
-                            });
-                          },
-                          icon: const Icon(
-                            Icons.thumb_down_alt_outlined,
-                            size: 16,
-                          ),
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(
-                            minHeight: 24,
-                            minWidth: 24,
-                          ),
-                          splashRadius: 20,
-                        ),
-                      ],
+                    // Very small gap
+                    const SizedBox(width: 1),
+                    Transform.translate(
+                      offset: const Offset(-15, 0),
+                      child: ChatMessageFeedback(
+                        message: message,
+                        onFeedback: (isPositive) {
+                          if (isPositive) {
+                            ref
+                                .read(chatMessagesProvider.notifier)
+                                .updateMessageLiked(message.id, true);
+
+                            ref
+                                .read(chatMessagesProvider.notifier)
+                                .updateMessageDisliked(message.id, false);
+                          } else {
+                            ref
+                                .read(chatMessagesProvider.notifier)
+                                .updateMessageLiked(message.id, false);
+                            ref
+                                .read(chatMessagesProvider.notifier)
+                                .updateMessageDisliked(message.id, true);
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),
               ),
-              // Show user-friendly message if disliked
-              if (message.isDisliked == true)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-                  child: Text(
-                    "Sorry this response didn't help! Please try rephrasing your input or let us know how we can improve.",
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontSize: 12,
-                      fontFamily: 'Satoshi',
-                    ),
-                  ),
-                ),
             ],
           ],
         ),
